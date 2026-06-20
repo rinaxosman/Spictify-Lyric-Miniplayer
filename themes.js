@@ -161,4 +161,6 @@ window.LyricMiniplayer.state = {
     showCloseBtn: true,
     centerLyrics: true,
     currentTheme: 'spotify',
+    showProgressBar: true,
+    isSeekingProgress: false
 };

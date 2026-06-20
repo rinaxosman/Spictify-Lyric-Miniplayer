@@ -44,6 +44,8 @@
         const savedShowLyrics = localStorage.getItem('lyrics-overlay-showlyrics');
         if (savedShowLyrics !== null) state.showLyrics = savedShowLyrics === 'true';
         const savedShowShuffle = localStorage.getItem('lyrics-overlay-showshuffle');
+        const savedShowProgress = localStorage.getItem('lyrics-overlay-showprogress');
+        if (savedShowProgress !== null) state.showProgressBar = savedShowProgress === 'true';
         if (savedShowShuffle !== null) state.showShuffleBtn = savedShowShuffle === 'true';
         const savedShowLike = localStorage.getItem('lyrics-overlay-showlike');
         if (savedShowLike !== null) state.showLikeBtn = savedShowLike === 'true';

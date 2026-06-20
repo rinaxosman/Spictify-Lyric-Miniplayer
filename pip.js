@@ -203,6 +203,10 @@ function setupPipWindow(win) {
                 <span class="menu-item-label">Show Lyrics</span>
                 <div class="menu-toggle ${state.showLyrics ? 'on' : ''}" id="toggleLyrics"></div>
             </div>
+            <div class="menu-item" id="toggleProgressItem">
+                <span class="menu-item-label">Progress Bar</span>
+                <div class="menu-toggle ${state.showProgressBar ? 'on' : ''}" id="toggleProgress"></div>
+            </div>
             <div class="menu-item" id="toggleCenterItem">
                 <span class="menu-item-label">Center Lyrics</span>
                 <div class="menu-toggle ${state.centerLyrics ? 'on' : ''}" id="toggleCenter"></div>
@@ -258,6 +262,12 @@ function setupPipWindow(win) {
             <svg viewBox="0 0 16 16" id="likeIcon"><path d="M1.69 2A4.582 4.582 0 0 1 8 2.023 4.583 4.583 0 0 1 11.88.817h.002a4.618 4.618 0 0 1 3.782 3.65v.003a4.543 4.543 0 0 1-1.011 3.84L9.35 14.629a1.765 1.765 0 0 1-2.093.464 1.762 1.762 0 0 1-.605-.463L1.348 8.309A4.582 4.582 0 0 1 1.689 2zm3.158.252A3.082 3.082 0 0 0 2.49 7.337l.005.005L7.8 13.664a.264.264 0 0 0 .311.069.262.262 0 0 0 .09-.069l5.312-6.33a3.043 3.043 0 0 0 .68-2.573 3.118 3.118 0 0 0-2.551-2.463 3.079 3.079 0 0 0-2.612.816l-.007.007a1.501 1.501 0 0 1-2.045 0l-.009-.008a3.082 3.082 0 0 0-2.121-.861z"/></svg>
         </button>
     </div>
+
+    <div class="progress-wrap ${state.showProgressBar ? '' : 'collapsed'}" id="progressWrap">
+        <span class="time-label" id="currentTimeLabel">0:00</span>
+        <input type="range" class="progress-slider" id="progressSlider" min="0" max="1000" value="0">
+        <span class="time-label" id="durationLabel">0:00</span>
+    </div>
     
     <div class="lyrics-wrap ${state.showLyrics ? '' : 'collapsed'} ${state.centerLyrics ? 'centered' : ''}" id="lyricsContainer">
         <div class="status-msg">
@@ -302,6 +312,12 @@ function setupPipWindow(win) {
     const lyricsContainer = doc.getElementById('lyricsContainer');
     const toggleLyricsItem = doc.getElementById('toggleLyricsItem');
     const toggleLyrics = doc.getElementById('toggleLyrics');
+    const toggleProgressItem = doc.getElementById('toggleProgressItem');
+    const toggleProgress = doc.getElementById('toggleProgress');
+    const progressWrap = doc.getElementById('progressWrap');
+    const progressSlider = doc.getElementById('progressSlider');
+    const currentTimeLabel = doc.getElementById('currentTimeLabel');
+    const durationLabel = doc.getElementById('durationLabel');
     const toggleCenterItem = doc.getElementById('toggleCenterItem');
     const toggleCenter = doc.getElementById('toggleCenter');
     const toggleShuffleItem = doc.getElementById('toggleShuffleItem');
@@ -382,6 +398,13 @@ function setupPipWindow(win) {
         toggleLyrics.classList.toggle('on', state.showLyrics);
         lyricsContainer.classList.toggle('collapsed', !state.showLyrics);
         localStorage.setItem('lyrics-overlay-showlyrics', state.showLyrics);
+    };
+
+    toggleProgressItem.onclick = () => {
+        state.showProgressBar = !state.showProgressBar;
+        toggleProgress.classList.toggle('on', state.showProgressBar);
+        progressWrap.classList.toggle('collapsed', !state.showProgressBar);
+        localStorage.setItem('lyrics-overlay-showprogress', state.showProgressBar);
     };
 
     toggleCenterItem.onclick = () => {
@@ -505,6 +528,31 @@ function setupPipWindow(win) {
         }
     };
 
+    progressSlider.oninput = (e) => {
+        state.isSeekingProgress = true;
+
+        const duration = getTrackDuration();
+        const rawValue = parseInt(e.target.value) || 0;
+        const percent = rawValue / 1000;
+        const seekTime = Math.round(duration * percent);
+
+        currentTimeLabel.textContent = formatTime(seekTime);
+        progressSlider.style.setProperty('--progress', `${percent * 100}%`);
+    };
+
+    progressSlider.onchange = (e) => {
+        const duration = getTrackDuration();
+        const rawValue = parseInt(e.target.value) || 0;
+        const percent = rawValue / 1000;
+        const seekTime = Math.round(duration * percent);
+
+        Spicetify.Player.seek(seekTime);
+
+        setTimeout(() => {
+            state.isSeekingProgress = false;
+        }, 150);
+    };
+
     // Lyrics click to seek
     lyricsContainer.onclick = (e) => {
         if (e.target.classList.contains('lyric')) {
@@ -565,6 +613,9 @@ function updatePipContent() {
     // Update volume
     updatePipVolume();
 
+    // Update progress
+    updatePipProgress();
+
     // Check if track changed
     if (track.uri !== state.currentTrackUri) {
         state.currentTrackUri = track.uri;
@@ -620,6 +671,30 @@ function updatePipVolume() {
         volumePercent.textContent = `${vol}%`;
         volumeIconWrap.innerHTML = getVolumeIconSvg(vol);
     }
+}
+
+function updatePipProgress() {
+    if (!state.pipWindow || state.pipWindow.closed) return;
+
+    const doc = state.pipWindow.document;
+    const progressSlider = doc.getElementById('progressSlider');
+    const currentTimeLabel = doc.getElementById('currentTimeLabel');
+    const durationLabel = doc.getElementById('durationLabel');
+
+    if (!progressSlider || !currentTimeLabel || !durationLabel) return;
+    if (state.isSeekingProgress || doc.activeElement === progressSlider) return;
+
+    const currentTime = Spicetify.Player.getProgress() || 0;
+    const duration = getTrackDuration();
+
+    currentTimeLabel.textContent = formatTime(currentTime);
+    durationLabel.textContent = formatTime(duration);
+
+    const percent = duration > 0 ? Math.min(currentTime / duration, 1) : 0;
+    const sliderValue = Math.round(percent * 1000);
+
+    progressSlider.value = sliderValue;
+    progressSlider.style.setProperty('--progress', `${percent * 100}%`);
 }
 
 async function loadLyrics(uri) {
@@ -718,7 +793,34 @@ function startUpdateLoop() {
         updateCurrentLyric();
         updatePipPlayButton();
         updatePipLikeState();
+        updatePipProgress();
     }, CONFIG.updateInterval);
+}
+
+function formatTime(ms) {
+    if (!Number.isFinite(ms) || ms < 0) return '0:00';
+
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
+function getTrackDuration() {
+    const track = Spicetify.Player.data?.item;
+
+    const possibleDuration =
+        track?.duration?.milliseconds ||
+        track?.duration?.totalMilliseconds ||
+        track?.duration_ms ||
+        track?.metadata?.duration ||
+        track?.metadata?.duration_ms ||
+        0;
+
+    const duration = Number(possibleDuration);
+
+    return Number.isFinite(duration) ? duration : 0;
 }
 
 // ==================== UTILITIES ====================
@@ -742,3 +844,6 @@ L.updateCurrentLyric = updateCurrentLyric;
 L.updatePipFontSize = updatePipFontSize;
 L.startUpdateLoop = startUpdateLoop;
 L.escapeHtml = escapeHtml;
+L.formatTime = formatTime;
+L.getTrackDuration = getTrackDuration;
+L.updatePipProgress = updatePipProgress;

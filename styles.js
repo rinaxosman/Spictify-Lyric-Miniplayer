@@ -512,6 +512,66 @@ function generateStyles(theme) {
             display: none;
         }
 
+        /* Progress Bar */
+        .progress-wrap {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 0 10px 8px;
+            background: ${t.controlsBg};
+            flex-shrink: 0;
+            -webkit-app-region: no-drag;
+            app-region: no-drag;
+        }
+
+        .progress-wrap.collapsed {
+            display: none;
+        }
+
+        .time-label {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.6);
+            min-width: 32px;
+            text-align: center;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .progress-slider {
+            -webkit-appearance: none;
+            flex: 1;
+            height: 4px;
+            border-radius: 999px;
+            outline: none;
+            cursor: pointer;
+            background: linear-gradient(
+                to right,
+                var(--accent) 0%,
+                var(--accent) var(--progress, 0%),
+                rgba(255, 255, 255, 0.18) var(--progress, 0%),
+                rgba(255, 255, 255, 0.18) 100%
+            );
+        }
+
+        .progress-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 11px;
+            height: 11px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.12s, transform 0.12s;
+        }
+
+        .progress-slider:hover::-webkit-slider-thumb,
+        .progress-slider:active::-webkit-slider-thumb {
+            opacity: 1;
+        }
+
+        .progress-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+
         /* Lyrics Container */
         .lyrics-wrap {
             flex: 1 1 auto;
